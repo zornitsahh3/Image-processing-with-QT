@@ -1,0 +1,87 @@
+#include <iostream>
+#include <vector>
+#include <complex>
+#include <cmath>
+
+using namespace std;
+const int SIZE=256;
+const int M=16;
+const int N=16;
+void generate2d(vector<vector<complex<double>>> &sig)
+{
+	sig.resize(M, vector<complex<double>>(N)); //sig becomes a matrix with M rows and N columns
+	double delX=2*M_PI/M;
+	double delY=2*M_PI/N;
+	for (int x=0; x<M; x++)
+	{
+		for (int y=0;y<N;y++)
+		{
+			double value=sin(x*delX)+sin(y*delY);
+			sig[y][x]=complex<double>(value,0);
+		}
+	}	
+}
+void print2d(const vector <vector<complex<double>>> &sig)
+{
+	for (int y=0;y<sig.size();y++)
+	{
+		for (int x=0;x<sig[y].size();x++)
+		{
+			cout<<sig[y][x].real()<<endl;
+		}}
+}
+void df2d(
+		const vector<vector<complex<double>>> &input, //input signal
+		vector<vector<complex<double>>> &output, //output signal
+		bool dir //direction
+	        )
+{ 
+	output.resize(N, vector<complex<double>>(M));
+   	double sign = dir ? -1.0 : +1.0;
+  	for (int v=0;v<N;v++) 
+	{
+		for (int u = 0; u < M; u++)   
+        {
+		complex<double> sum(0,0);
+		 for (int y = 0; y < N; y++)    
+            {
+                for (int x = 0; x < M; x++)
+                {
+                    double angle =
+                        2 * M_PI *
+                        ((u * x / (double)M) + (v * y / (double)N));
+                    sum += input[y][x] * exp(complex<double>(0, sign * angle));
+                }
+            }
+
+            output[v][u] = sum;
+        }
+    }
+}
+int main()
+{
+	cout << "2D Discrete Fourier Transform with x=0..M-1 and y=0..N-1\n\n";
+
+    vector<vector<complex<double>>> signal;
+    vector<vector<complex<double>>> spectrum;
+
+    generate2d(signal);
+
+    cout << "Input Signal (real part):\n";
+    print2d(signal);
+    cout<< "DFT:\n";
+    df2d(signal, spectrum, true);  // forward DFT
+    print2d(spectrum);
+    cout << "DFT Magnitude:\n";
+    for (int y = 0; y < N; y++)
+    {
+        for (int x = 0; x < M; x++)
+        {
+            cout << abs(spectrum[y][x]) << "\t";
+        }
+        cout << endl;
+    }
+
+    return 0;
+}//main
+
