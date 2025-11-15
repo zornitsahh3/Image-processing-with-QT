@@ -1,0 +1,61 @@
+--we have the finite sum[f(x)*E^(-j2pi*u*x/M);x,0,M-1],u=0,1,...,M-1; so u is the outside var, while x is the inside - we fix u, then iterate on x, then go to the next u and so on
+--x -> time domain
+--u -> frequency domain
+#include <iostream>
+#include <vector>
+#include <complex>
+#include <cmath>
+
+using namespace std;
+const int SIZE=256;
+void generate(vector < complex<double> > &sig,int size)
+{
+	double delta=2*M_PI/size;
+	for (int indx_sig=0;indx_sig<SIZE;indx_sig++)
+	{
+		double x=indx_sig*delta;
+		complex<double> sample(sin(x),0);
+		sig.push_back(sample);
+	}
+
+}//generate
+void print(const vector <complex<double>> &sig)
+{
+	for (int ind_sig=0;ind_sig<sig.size();ind_sig++)
+{
+	cout<<sig[ind_sig]<<endl;
+}
+	cout<<endl;
+}
+void df1d(
+		const vector<complex<double>> &input, //input signal
+		vector<complex<double>> &output, //output signal
+		bool dir //direction
+	        )
+{ 
+  	for (int indx_out=0;indx_out<input.size();indx_out++) //outside loop is for u??
+	{
+		complex<double> sum(0,0);
+		output.resize(input.size());
+			for (int indx_in=0;indx_in<input.size();indx_in++) //inside loop is for x?
+			{
+				double expnt=2*M_PI*indx_in*indx_out/input.size();
+				expnt*=(dir?1:-1);
+				sum+=input[indx_in]*exp(complex<double>(0,expnt));
+			}
+			output[indx_out]=sum;
+	}
+}
+int main()
+{
+	/* cout << "One dimensional FT of a sin function"<<endl;
+ 	 vector<complex<double>> signal;
+	 generate(signal,SIZE);
+   	 cout << "Input signal:" << endl;	
+	 print(signal);	 */
+	 vector<complex<double>> spectrum;
+         df1d(signal, spectrum, true); //forward DFT
+	 cout << "DFT output:" << endl;
+	 print(spectrum);			       
+	return 0;
+}//main
