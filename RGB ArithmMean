@@ -1,0 +1,61 @@
+#include <iostream>
+#include <QApplication>
+#include <QImage>
+#include <QLabel>
+#include <QPixmap>
+#include <QtGlobal>
+using namespace std;
+void meanFilterRGB(const QImage &in, QImage &out, int k)
+{
+    int DK = k / 2;
+    double coef = 1.0 / (k * k);
+
+    for (int i = 0; i < in.height(); i++)
+    {
+        for (int j = 0; j < in.width(); j++)
+        {
+            double rSum = 0, gSum = 0, bSum = 0;
+
+            for (int ki = -DK; ki <= DK; ki++)
+            {
+                for (int kj = -DK; kj <= DK; kj++)
+                {
+                    int x = i + ki;
+                    int y = j + kj;
+
+                    if (x >= 0 && x < in.height() &&
+                        y >= 0 && y < in.width())
+                    {
+                        QRgb pixel = in.pixel(y, x);
+                        rSum += qRed(pixel);
+                        gSum += qGreen(pixel);
+                        bSum += qBlue(pixel);
+                    }
+                }
+            }
+
+            int r = static_cast<int>(rSum * coef);
+            int g = static_cast<int>(gSum * coef);
+            int b = static_cast<int>(bSum * coef);
+
+            out.setPixel(j, i, qRgb(r, g, b));
+        }
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    QApplication app(argc, argv);
+    QImage in_image("lenna.png");
+    QImage rgb_image = in_image.convertToFormat(QImage::Format_RGB32);
+    QImage out_image(rgb_image.size(), rgb_image.format());
+
+    meanFilterRGB(rgb_image, out_image, 5);
+    QLabel label;
+    label.setPixmap(QPixmap::fromImage(out_image));
+    label.setWindowTitle("Filtered Image");
+    label.resize(out_image.width(), out_image.height());
+    label.show();
+    return app.exec();
+}
+
