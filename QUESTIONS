@@ -66,3 +66,17 @@ qAlpha(pixel)  → extracts alpha
 We use QRgb because:
 It matches the memory format of QImage::Format_RGB32
 It lets us easily extract color channels
+-------------------------------------
+Let's say a pixel has:
+Red = 120
+Green = 200
+Blue = 50
+Alpha = 255
+In memory, this might be stored as four bytes:
+120 200 50 255
+That's raw bytes.
+But a QRgb object organizes them into a 32-bit number:
+QRgb pixel = 0x78C832FF;
+So:
+Raw bytes: just 120, 200, 50, 255
+QRgb: a structured pixel value that Qt knows how to read
