@@ -80,3 +80,19 @@ QRgb pixel = 0x78C832FF;
 So:
 Raw bytes: just 120, 200, 50, 255
 QRgb: a structured pixel value that Qt knows how to read
+-------------------------------------
+Why normalization is useful
+1. Compare images fairly
+Two images of different sizes → raw histograms differ, but normalized histograms can match.
+2. Use in machine learning / feature extraction
+Algorithms like:
+SVM
+kNN
+CNN features
+HOG (Histogram of Oriented Gradients)
+all expect features on the same scale.
+3. Making brightness/contrast adjustment easier
+Some algorithms (e.g., histogram equalization) require normalized histograms to compute cumulative probability distributions.
+4. Remove biases
+If one image has more pixels, its raw counts dominate.
+Normalization removes this imbalance.
