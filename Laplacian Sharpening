@@ -1,0 +1,84 @@
+/*The Laplacian operator is a second-order derivative operator used to detect edges. In image sharpening:
+Apply kernel to each channel (R, G, B) separately.
+Algorithm:
+  Load a color image (QImage).
+  Create an output image of same size.
+  For each pixel (x, y):
+    Loop over 3x3 neighborhood.
+  Apply Laplacian kernel for each channel.
+  Add the result to the original pixel value.
+  Clamp the final value to [0,255].*/
+
+#include <QApplication>
+#include <QImage>
+#include <QLabel>
+#include <QTextStream>
+#include <algorithm>
+
+int main(int argc, char* argv[])
+{
+    QApplication app(argc, argv);
+
+    QString file_name = "color_image.jpg";
+    QImage image(file_name);
+    if (image.isNull()) {
+        QTextStream(stdout) << "Cannot load image: " << file_name << "\n";
+        return -1;
+    }
+
+    if (image.format() != QImage::Format_RGB32)
+        image = image.convertToFormat(QImage::Format_RGB32);
+
+    QImage sharpened(image.width(), image.height(), QImage::Format_RGB32);
+
+    // Laplacian kernel 3x3 (4-connected)
+    int kernel[3][3] = {
+        { 0, -1,  0 },
+        {-1,  4, -1 },
+        { 0, -1,  0 }
+    };
+    int k_size = 3;
+    int half = k_size / 2;
+
+    for (int y = 0; y < image.height(); y++)
+    {
+        QRgb* out_row = reinterpret_cast<QRgb*>(sharpened.scanLine(y));
+        for (int x = 0; x < image.width(); x++)
+        {
+            int sumR = 0, sumG = 0, sumB = 0;
+
+            for (int dy = -half; dy <= half; dy++)
+            {
+                int ny = y + dy;
+                if (ny < 0 || ny >= image.height()) continue;
+                const QRgb* in_row = reinterpret_cast<const QRgb*>(image.scanLine(ny));
+
+                for (int dx = -half; dx <= half; dx++)
+                {
+                    int nx = x + dx;
+                    if (nx < 0 || nx >= image.width()) continue;
+
+                    QRgb pixel = in_row[nx];
+                    int k_val = kernel[dy+half][dx+half];
+
+                    sumR += qRed(pixel) * k_val;
+                    sumG += qGreen(pixel) * k_val;
+                    sumB += qBlue(pixel) * k_val;
+                }
+            }
+
+            // Add Laplacian to original pixel (sharpen)
+            int newR = std::clamp(qRed(image.pixel(x,y)) + sumR, 0, 255);
+            int newG = std::clamp(qGreen(image.pixel(x,y)) + sumG, 0, 255);
+            int newB = std::clamp(qBlue(image.pixel(x,y)) + sumB, 0, 255);
+
+            out_row[x] = qRgb(newR, newG, newB);
+        }
+    }
+
+    QLabel label;
+    label.setPixmap(QPixmap::fromImage(sharpened));
+    label.show();
+
+    return app.exec();
+}
