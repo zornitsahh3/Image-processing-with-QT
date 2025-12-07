@@ -1,0 +1,110 @@
+#include <QApplication>
+#include <QImage>
+#include <QLabel>
+#include <QTextStream>
+#include <QtMath>
+
+const QString file_name = "lenna.png";
+const int INTENS_MAX = 255;
+const double EPS = 1.0e-8;
+
+inline double min2(double frst, double scnd)
+{
+    return frst <= scnd ? frst : scnd;
+}//min2
+
+inline double min3(double frst, double scnd, double thrd)
+{
+    return min2(frst, min2(scnd, thrd));
+}//min3
+
+inline double hue(double red, double grn, double blu)
+{
+    double num = ((red - grn) + (red - blu)) / 2.0;
+    double den = sqrt((red - grn) * (red - grn) + (red - blu) * (grn - blu));
+    double phi = acos(num / (den + EPS)) * 180.0 / M_PI;
+
+    return blu <= grn ? phi : 360 - phi;
+}//hue
+
+inline double saturation(double red, double grn, double blu)
+{
+    return 1.0 - 3.0 * min3(red, grn, blu) / (red + grn + blu);
+}//saturation
+
+inline double intensity(double red, double grn, double blu)
+{
+    return (red + grn + blu) / 3.0;
+}//intensity
+
+// Convert RGB image to HSI grayscale images
+void rgbToHsi(const QImage &in_image, QImage &h_image, QImage &s_image, QImage &i_image)
+{
+    for (int y = 0; y < in_image.height(); y++)
+    {
+        const QRgb* in_row = reinterpret_cast<const QRgb*>(in_image.scanLine(y));
+        uchar* h_row = h_image.scanLine(y);
+        uchar* s_row = s_image.scanLine(y);
+        uchar* i_row = i_image.scanLine(y);
+
+        for (int x = 0; x < in_image.width(); x++)
+        {
+            double R = qRed(in_row[x]) / 255.0;
+            double G = qGreen(in_row[x]) / 255.0;
+            double B = qBlue(in_row[x]) / 255.0;
+
+            h_row[x] = static_cast<int>(hue(R,G,B)) % 256;
+            s_row[x] = static_cast<int>(saturation(R,G,B) * 255.0);
+            i_row[x] = static_cast<int>(intensity(R,G,B) * 255.0);
+        }
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    QApplication app(argc, argv);
+
+    QImage image(file_name);
+    if (image.isNull()) {
+        QTextStream(stdout) << "Cannot load image: " << file_name << "\n";
+        return -1;
+    }
+
+    if (image.format() != QImage::Format_RGB32)
+        image = image.convertToFormat(QImage::Format_RGB32);
+
+    QImage h_image(image.width(), image.height(), QImage::Format_Grayscale8);
+    QImage s_image(image.width(), image.height(), QImage::Format_Grayscale8);
+    QImage i_image(image.width(), image.height(), QImage::Format_Grayscale8);
+
+    rgbToHsi(image, h_image, s_image, i_image);
+
+    QImage red_mask(image.width(), image.height(), QImage::Format_RGB32);
+
+    // Threshold for red hue (0° ± 20°)
+    double lower_thresh = 0;
+    double upper_thresh = 20;
+
+    for (int y = 0; y < image.height(); y++)
+    {
+        QRgb* out_row = reinterpret_cast<QRgb*>(red_mask.scanLine(y));
+        const uchar* h_row = h_image.scanLine(y);
+        const QRgb* in_row = reinterpret_cast<const QRgb*>(image.scanLine(y));
+
+        for (int x = 0; x < image.width(); x++)
+        {
+            double H = h_row[x] * 360.0 / 255.0; // convert 0..255 → 0..360
+            if (H <= upper_thresh || H >= 360 - upper_thresh)
+                out_row[x] = in_row[x]; // keep original color
+            else
+                out_row[x] = qRgb(0,0,0); // black
+        }
+    }
+
+    QLabel label;
+    label.setPixmap(QPixmap::fromImage(red_mask));
+    label.show();
+
+    return app.exec();
+}
+
