@@ -1,0 +1,61 @@
+#include <QApplication>
+#include <QImage>
+#include <QLabel>
+#include <QTextStream>
+#include <QColor>
+#include <vector>
+
+int main(int argc, char *argv[])
+{
+    QApplication app(argc, argv);
+
+    QString file_name = "lenna.png"; // your grayscale image
+    QImage gray_image(file_name);
+    if (gray_image.isNull()) {
+        QTextStream(stdout) << "Cannot load image: " << file_name << "\n";
+        return -1;
+    }
+
+    // Ensure grayscale format
+    if (gray_image.format() != QImage::Format_Grayscale8)
+        gray_image = gray_image.convertToFormat(QImage::Format_Grayscale8);
+
+    QImage pseudo_image(gray_image.width(), gray_image.height(), QImage::Format_RGB32);
+
+    // Define 8 colors for 8 intervals
+    std::vector<QColor> colors = {
+        QColor(0,0,255),     // Blue
+        QColor(0,255,255),   // Cyan
+        QColor(0,255,0),     // Green
+        QColor(255,255,0),   // Yellow
+        QColor(255,165,0),   // Orange
+        QColor(255,0,0),     // Red
+        QColor(255,0,255),   // Magenta
+        QColor(255,255,255)  // White
+    };
+
+    int interval_size = 256 / 8; // 32
+
+    // Loop over pixels
+    for (int y = 0; y < gray_image.height(); y++)
+    {
+        const uchar* row_in = gray_image.scanLine(y);
+        QRgb* row_out = reinterpret_cast<QRgb*>(pseudo_image.scanLine(y));
+
+        for (int x = 0; x < gray_image.width(); x++)
+        {
+            int intensity = row_in[x];
+            int idx = intensity / interval_size;
+            if (idx > 7) idx = 7; // just in case
+            row_out[x] = colors[idx].rgb();
+        }
+    }
+
+    // Show pseudocolor image
+    QLabel label;
+    label.setPixmap(QPixmap::fromImage(pseudo_image));
+    label.show();
+
+    return app.exec();
+}
+
