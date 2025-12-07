@@ -108,3 +108,13 @@ So what does QPixmap::fromImage(image) do?
 Think of it like:
 QImage → good for editing pixels
 QPixmap → good for showing pixels
+-------------------------------------
+Explalnation of the idea of HSI program:
+Creates a Qt GUI application (QApplication app(argc,argv)).
+Loads the image file barbie.jpg into a QImage.
+Converts it to QImage::Format_RGB32 if needed (so pixel reads are consistent).
+Allocates three grayscale images (h_image, s_image, i_image) with the same size as the original.
+Calls rgbToHsi(...) to compute H, S, I images from the RGB source.
+Puts each resulting grayscale image into a separate QLabel (setPixmap(...)).
+Calls show() on the three labels — which makes three separate windows appear.
+Starts the Qt event loop with app.exec() and waits until windows are closed.
