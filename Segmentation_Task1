@@ -1,0 +1,120 @@
+#include <QApplication>
+#include <QImage>
+#include <QLabel>
+#include <QTextStream>
+#include <QString>
+#include <QPixmap>
+#include <algorithm>
+
+// ---------------- Constants ----------------
+const int kern_size = 3;
+const int INTENS_MAX = 255;
+const int INTENS_MIN = 0;
+
+const double kern_neigh = 1.0;
+const double kern_centr = -(kern_size * kern_size - 1);
+
+// ---------------- Kernel ----------------
+const double kernel[kern_size][kern_size] =
+{
+    { kern_neigh,  kern_neigh,  kern_neigh },
+    { kern_neigh,  kern_centr,  kern_neigh },
+    { kern_neigh,  kern_neigh,  kern_neigh }
+};
+
+const QString file_name = "gray_lenna_small.png";
+
+// ---------------- Threshold Functor ----------------
+template <typename TVal>
+class Threshold
+{
+public:
+    explicit Threshold(const TVal& thresh) : thresh(thresh) {}
+
+    int operator()(const TVal& in) const
+    {
+        return (in > thresh) ? INTENS_MAX : INTENS_MIN;
+    }
+
+private:
+    TVal thresh;
+};
+
+// ---------------- Filter Function ----------------
+template <typename TPrc>
+void filter(const QImage& in_image,
+            QImage& out_image,
+            const double kernel[][kern_size],
+            const TPrc& prc)
+{
+    const int DK = kern_size / 2;
+
+    for (int row = 0; row < in_image.height(); ++row)
+    {
+        quint8* out_ptr = out_image.bits() + row * out_image.bytesPerLine();
+
+        for (int col = 0; col < in_image.width(); ++col)
+        {
+            double conv_value = 0.0;
+
+            for (int kr = 0; kr < kern_size; ++kr)
+            {
+                int x = row - DK + kr;
+                if (x < 0 || x >= in_image.height())
+                    continue;
+
+                const quint8* in_ptr = in_image.bits() + x * in_image.bytesPerLine();
+
+                for (int kc = 0; kc < kern_size; ++kc)
+                {
+                    int y = col - DK + kc;
+                    if (y < 0 || y >= in_image.width())
+                        continue;
+
+                    conv_value += in_ptr[y] * kernel[kr][kc];
+                }
+            }
+
+            int value = prc(conv_value);
+            value = std::clamp(value, INTENS_MIN, INTENS_MAX);
+
+            out_ptr[col] = static_cast<quint8>(value);
+        }
+    }
+}
+
+// ---------------- Main ----------------
+int main(int argc, char* argv[])
+{
+    QApplication app(argc, argv);
+
+    QImage in_image;
+    QLabel label;
+
+    if (!in_image.load(file_name))
+    {
+        QTextStream(stdout) << "Cannot load image: " << file_name << Qt::endl;
+        return -1;
+    }
+
+    QTextStream(stdout) << "Image loaded: " << file_name << Qt::endl;
+    QTextStream(stdout) << "Format: " << in_image.format() << Qt::endl;
+
+    if (in_image.format() != QImage::Format_Grayscale8)
+    {
+        QTextStream(stdout) << "Image must be grayscale (Format_Grayscale8)" << Qt::endl;
+        return -1;
+    }
+
+    QImage out_image(in_image.size(), QImage::Format_Grayscale8);
+
+    Threshold<double> threshold(200.0);
+    filter(in_image, out_image, kernel, threshold);
+
+    label.setPixmap(QPixmap::fromImage(out_image));
+    label.setWindowTitle("Filtered Image");
+    label.show();
+
+    return app.exec();
+}
+
