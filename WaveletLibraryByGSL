@@ -1,0 +1,27 @@
+//---First we need to install the library on the Ubuntu:
+//sudo apt-get update
+//sudo apt-get install libgs101dbl
+//---Then we need to install the GSL development package
+//sudo apt-get update
+//sudo apt-get install libgsl-dev
+//libgsl-dev contains the header files (*.h) needed to compile C/C++ programs using GSL; libgsl23 or libgsl101 (runtime libraries) are not enough.
+//---Then when we want to compile out program correctly we need to link with the GSL:
+//Example: g++ test_gsl.cpp -o test_gsl -lgsl -lgslcblas -lm
+//Explanation of the example: -lgsl → links the GSL library
+//-lgslcblas → links the CBLAS routines used internally by GSL
+//-lm → links the math library (required for some functions)
+
+#include <iostream>
+
+using namespace std;
+
+#include <gsl/gsl_sf_bessel.h>
+
+int main()
+{
+	double x=15.0;
+	double y=gsl_sf_bessel_J0 (x);
+
+	cout<<"J0("<<x<<")="<<y<<endl;
+	return 0;
+}
